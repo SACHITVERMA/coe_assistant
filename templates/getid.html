@@ -1,0 +1,275 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID Card History | COE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+   
+ <style>
+    :root { 
+        --primary: #1a2a6c; 
+        --gold: #f1c40f;
+        --accent: #6a11cb; 
+    }
+    
+    body { 
+        font-family: 'Segoe UI', sans-serif; 
+        background: #f0f2f5; 
+        margin: 0; 
+        padding: 20px; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+    }
+
+    .history-container { 
+        width: 100%; 
+        max-width: 800px; 
+        background: white; 
+        padding: 30px; 
+        border-radius: 20px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
+        margin-bottom: 30px; 
+        box-sizing: border-box;
+    }
+
+    .id-item { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 20px; 
+        border-bottom: 1px solid #eee; 
+        transition: 0.3s;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .id-item:hover { background: #f9fafb; border-radius: 12px; }
+    .id-info b { color: var(--primary); font-size: 18px; display: block; }
+    .id-info span { font-size: 14px; color: #666; }
+
+    #cardPreviewSection { 
+        display: none; 
+        flex-direction: column; 
+        align-items: center; 
+        animation: fadeIn 0.5s ease;
+        width: 100%;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .id-card-wrapper { 
+        padding: 15px; 
+        background: white; 
+        border-radius: 20px; 
+        box-shadow: 0 15px 40px rgba(0,0,0,0.12);
+        margin-bottom: 25px; 
+    }
+
+    .id-card {
+        width: 350px;
+        min-height: 220px; /* Fixed height ki jagah min-height */
+        background: #fff;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #ddd;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+
+    .card-header { background: var(--primary); color: white; padding: 10px; display: flex; align-items: center; gap: 10px; }
+    .logo { width: 40px; height: 40px; border-radius: 50%; background: white; overflow: hidden; flex-shrink: 0; }
+    .college-name { font-size: 12px; font-weight: bold; line-height: 1.2; }
+
+    .card-body { display: flex; padding: 15px 10px; gap: 15px; flex: 1; }
+    .photo-area { width: 85px; height: 105px; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; background: #f4f4f4; flex-shrink: 0; }
+    #displayPhoto { width: 100%; height: 100%; object-fit: cover; }
+
+    .details { flex: 1; font-size: 11px; line-height: 1.8; color: #333; }
+    .details b { color: var(--primary); display: inline-block; width: 65px; }
+
+    .qr-section { position: absolute; right: 10px; bottom: 45px; text-align: center; }
+
+    /* Footer ko hamesha niche rakhne ke liye margin-top: auto */
+    .card-footer { 
+        background: var(--gold); 
+        height: 30px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 12px; 
+        font-weight: bold; 
+        color: var(--primary);
+        margin-top: auto; 
+        width: 100%;
+    }
+
+    .btn-group { display: flex; gap: 15px; margin-bottom: 50px; flex-wrap: wrap; justify-content: center; }
+    .view-btn { 
+        background: var(--accent); 
+        color: white; 
+        border: none; 
+        padding: 10px 20px; 
+        border-radius: 8px; 
+        cursor: pointer; 
+        font-weight: 600;
+        transition: 0.3s;
+    }
+
+    .back-link {
+        text-decoration: none;
+        color: var(--primary);
+        font-weight: 600;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: 0.3s;
+        padding: 5px 10px;
+        border-radius: 8px;
+    }
+
+    /* --- MOBILE RESPONSIVE FIX --- */
+    @media (max-width: 480px) {
+        .id-card { 
+            width: 310px; 
+            min-height: 200px; 
+        }
+        .details { font-size: 10px; line-height: 1.5; }
+        .photo-area { width: 75px; height: 95px; }
+        .id-item { justify-content: center; text-align: center; }
+        .card-footer { 
+            font-size: 10px; 
+            height: 28px; 
+            display: flex !important; /* Force visibility */
+        }
+        .qr-section { bottom: 40px; }
+    }
+</style>
+</head>
+<body>
+
+    <div class="history-container" id="historySection">
+
+<a href="setting.html" class="back-link">
+        <i class="fa-solid fa-arrow-left"></i> Back to Settings
+    </a>
+
+        <h2 style="margin-top:0; color: var(--primary); text-align: center;">
+            <i class="fa-solid fa-id-card"></i> Your ID Card Registry
+        </h2>
+        <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;">
+        <div id="idList">
+            <p style="text-align: center; color: #888;">Checking records...</p>
+        </div>
+    </div>
+
+    <div id="cardPreviewSection">
+        <div class="id-card-wrapper" id="captureArea">
+            <div class="id-card">
+                <div class="card-header">
+                    <div class="logo"><img src="image/collegeimg.png" width="40" alt="Logo"></div>
+                    <div class="college-name">CENTRE OF EXCELLENCE<br><span style="font-size: 9px; font-weight: normal;">Govt. College Sanjauli, Shimla</span></div>
+                </div>
+                <div class="card-body">
+                    <div class="photo-area"><img id="displayPhoto" src="" alt="Student"></div>
+                    <div class="details">
+                        <p style="margin: 2px 0;"><b>NAME:</b> <span id="displayName">---</span></p>
+                        <p style="margin: 2px 0;"><b>ROLL NO:</b> <span id="displayRoll">---</span></p>
+                        <p style="margin: 2px 0;"><b>COURSE:</b> <span id="displayCourse">---</span></p>
+                        <p style="margin: 2px 0;"><b>SESSION:</b> <span id="displaySession">---</span></p>
+                        <p style="margin: 2px 0;"><b>STD-ID:</b> <span id="displayUniqueID" style="color: red; font-weight: bold;">---</span></p>
+                    </div>
+                    <div class="qr-section">
+                        <div id="qrcode"></div>
+                    </div>
+                </div>
+                <div class="card-footer">ACADEMIC IDENTITY CARD</div>
+            </div>
+        </div>
+        
+        <div class="btn-group">
+            <button class="view-btn" style="background:#64748b" onclick="location.reload()">
+                <i class="fa-solid fa-arrow-left"></i> Back to List
+            </button>
+            <button class="view-btn" onclick="downloadPDF()">
+                <i class="fa-solid fa-download"></i> Download PDF
+            </button>
+        </div>
+    </div>
+
+<script>
+    const API_BASE = "http://127.0.0.1:5000";
+
+    async function loadIDHistory() {
+        const email = sessionStorage.getItem('user_id');
+        if(!email) { window.location.href = 'login.html'; return; }
+
+        try {
+            const res = await fetch(`${API_BASE}/api/get_all_ids?email=${email}`);
+            const data = await res.json();
+            
+            const listDiv = document.getElementById('idList');
+            if(data.success && data.cards.length > 0) {
+                listDiv.innerHTML = data.cards.map(card => `
+                    <div class="id-item">
+                        <div class="id-info">
+                            <b>Session: ${card.academic_year}</b>
+                            <span>ID: ${card.unique_id || 'Pending'} | Status: 
+                                <span style="color: ${card.status === 'Approved' ? '#2ecc71' : '#f39c12'}">${card.status}</span>
+                            </span>
+                        </div>
+                        <button class="view-btn" onclick='showCard(${JSON.stringify(card)})' 
+                            ${card.status !== 'Approved' ? 'disabled style="background:#ccc; cursor:not-allowed"' : ''}>
+                            ${card.status === 'Approved' ? '<i class="fa-solid fa-eye"></i> View' : 'Pending'}
+                        </button>
+                    </div>
+                `).join('');
+            } else {
+                listDiv.innerHTML = "<p style='text-align:center'>No ID cards found in your history.</p>";
+            }
+        } catch (e) { listDiv.innerHTML = "<p style='text-align:center; color:red'>Error connecting to server.</p>"; }
+    }
+
+    function showCard(card) {
+        document.getElementById('historySection').style.display = 'none';
+        document.getElementById('cardPreviewSection').style.display = 'flex';
+        
+        // Data Fill Logic
+        document.getElementById('displayName').innerText = card.full_name;
+        document.getElementById('displayRoll').innerText = card.roll_no;
+        document.getElementById('displayCourse').innerText = card.department;
+        document.getElementById('displaySession').innerText = card.academic_year;
+        document.getElementById('displayUniqueID').innerText = card.unique_id;
+        document.getElementById('displayPhoto').src = `${API_BASE}/static/uploads/id_docs/${card.photo_path}`;
+        
+        // QR Code
+        document.getElementById('qrcode').innerHTML = "";
+        new QRCode(document.getElementById("qrcode"), {
+            text: `ID: ${card.unique_id}\nStudent: ${card.full_name}\nRoll No: ${card.roll_no}\nCourse: ${card.department}\nSession: ${card.academic_year}`, 
+            width: 50, 
+            height: 50
+        });
+    }
+
+    function downloadPDF() {
+        const element = document.getElementById('captureArea');
+        const opt = {
+            margin: 10,
+            filename: `ID_Card_${document.getElementById('displayRoll').innerText}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 3, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save();
+    }
+
+     window.onload = loadIDHistory;
+</script>
+</body>
+</html>

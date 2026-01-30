@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal | COE Assistant</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root { --primary: #6a11cb; --danger: #ff4757; --success: #2ecc71; }
+        body { background: #f4f7f6; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .logout-btn { background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        
+        /* Table Styling */
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
+        th { background: var(--primary); color: white; }
+        
+        .action-btn { padding: 6px 12px; border: none; border-radius: 5px; cursor: pointer; color: white; font-size: 12px; transition: 0.3s; }
+        .btn-update { background: var(--success); }
+        .btn-delete { background: var(--danger); }
+        .btn-update:hover { opacity: 0.8; }
+        
+        /* General Form Styling */
+        .notice-form { 
+            display: grid; 
+            gap: 12px; 
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 150px; 
+            margin-bottom: 15px; 
+            align-items: stretch;
+        }
+        .notice-form input, select { 
+            padding: 12px; 
+            border: 1px solid #ddd; 
+            border-radius: 6px; 
+            font-size: 14px; 
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Responsive Marks & Manage Section Grid */
+        .responsive-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .responsive-grid input, .responsive-grid select {
+            flex: 1;
+            min-width: 220px; /* Ensures boxes don't get too small */
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .responsive-grid button {
+            flex: 0.5;
+            min-width: 150px;
+            cursor: pointer;
+        }
+
+        /* Mobile Responsiveness */
+        @media screen and (max-width: 992px) {
+            .notice-form { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media screen and (max-width: 768px) {
+            .responsive-grid input, .responsive-grid select, .responsive-grid button {
+                flex: 1 1 100%; /* Stack everything on mobile */
+            }
+            .notice-form { grid-template-columns: 1fr; }
+            .header h1 { font-size: 1.2rem; width: 100%; }
+            .logout-btn { width: 100%; text-align: center; }
+        }
+
+        .table-responsive { overflow-x: auto; border-radius: 8px; }
+        table { min-width: 600px; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1><i class="fa-solid fa-user-shield"></i> COE Admin Panel</h1>
+        <button class="logout-btn" onclick="adminLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+    </div>
+    <div class="card" style="border-left: 5px solid #f1c40f;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+            <h3><i class="fa-solid fa-user-check"></i> ID Card Verification Portal</h3>
+            <p style="font-size: 14px; color: #666; margin: 0;">Verify pending student ID card applications and generate Unique IDs.</p>
+        </div>
+        <button class="action-btn" onclick="window.location.href='student_verification.html'" style="background: #f1c40f; color: #000; padding: 12px 25px; font-weight: bold; min-width: 200px;">
+            <i class="fa-solid fa-shield-halved"></i> Open Verification Portal
+        </button>
+    </div>
+</div>
+
+    <div class="card">
+        <h3><i class="fa-solid fa-file-pdf"></i> Upload College Documents</h3>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <input type="file" id="adminFile" accept=".pdf,.txt,.docx" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; min-width: 250px;">
+            <button class="action-btn btn-update" onclick="uploadFile()" style="padding:12px 25px; font-weight: bold; min-width: 150px;">
+                <i class="fa-solid fa-upload"></i> Upload & Sync
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3><i class="fa-solid fa-brain"></i> Manage AI Knowledge Base</h3>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr><th>Document Name</th><th>Content Preview</th><th>Action</th></tr>
+                </thead>
+                <tbody id="knowledgeTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3><i class="fa-solid fa-calendar-days"></i> Manage College Timetable</h3>
+        <div class="notice-form">
+            <input type="text" id="ttCourse" placeholder="Course">
+            <input type="text" id="ttYear" placeholder="Year/Sem">
+            <input type="text" id="ttTime" placeholder="Time Slot">
+            <input type="text" id="ttSubject" placeholder="Subject">
+            <input type="text" id="ttRoom" placeholder="Room No">
+            <button class="action-btn btn-update" onclick="addTimetable()" style="min-height: 45px;">Add Entry</button>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr><th>Course</th><th>Year/Sem</th><th>Time</th><th>Subject</th><th>Room</th><th>Action</th></tr>
+                </thead>
+                <tbody id="timetableTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card" style="border-top: 5px solid #27ae60;">
+    <h3><i class="fa-solid fa-file-import"></i> Bulk Import Marks (Excel/CSV)</h3>
+    <p style="font-size: 13px; color: #666;">File format: <b>ROLL_NO, SUBJECT, MARKS, TOTAL_MARKS</b></p>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <input type="file" id="bulkMarksFile" accept=".csv, .xlsx, .xls" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+        <button class="action-btn" onclick="importBulkMarks()" style="background: #27ae60; padding:12px 25px; font-weight: bold;">
+            <i class="fa-solid fa-file-upload"></i> Import & Process
+        </button>
+    </div>
+</div>
+
+
+<div class="card" style="border-left: 5px solid #27ae60;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Manage Marks Import History</h3>
+        <button class="action-btn" onclick="fetchImportHistory()" style="background: #64748b;">
+            <i class="fa-solid fa-arrows-rotate"></i> Refresh History
+        </button>
+    </div>
+    
+    <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
+        <i class="fa-solid fa-info-circle"></i> Here you can see which Excel files have been uploaded and manage them.
+    </p>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>File Name</th>
+                    <th>Records Added</th>
+                    <th>Date & Time</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="importHistoryBody">
+                </tbody>
+        </table>
+    </div>
+    
+    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
+        <button class="action-btn btn-delete" onclick="clearFullResultsTable()" style="padding: 12px 25px; font-weight: bold;">
+            <i class="fa-solid fa-triangle-exclamation"></i> Clear All Student Results (Final Cleanup)
+        </button>
+    </div>
+</div>
+
+    <div class="card">
+        <h3><i class="fa-solid fa-file-invoice"></i> Upload Student Marks</h3>
+        <div class="responsive-grid">
+            <input type="email" id="resEmail" placeholder="Student Email (Mandatory)" required>
+            <input type="text" id="resRoll" placeholder="Verify Roll No. (Mandatory)" required>
+            <input type="text" id="resCourse" placeholder="Verify Course (Mandatory)" required>
+        </div>
+
+        <div id="subjectRows">
+            <div class="notice-form" style="grid-template-columns: 2fr 1fr 1fr 50px; margin-bottom: 10px;">
+                <input type="text" class="sub-name" placeholder="Subject Name">
+                <input type="number" class="sub-marks" placeholder="Obtained">
+                <input type="number" class="sub-total" placeholder="Total" value="100">
+                <button class="action-btn btn-delete" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+            <button class="action-btn" onclick="addSubjectRow()" style="background: #6c757d; flex: 1; padding: 12px;">
+                <i class="fa-solid fa-plus"></i> Add Subject
+            </button>
+            <button class="action-btn btn-update" onclick="saveAllResults()" style="flex: 1; padding: 12px;">
+                <i class="fa-solid fa-save"></i> Save All Marks
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3><i class="fa-solid fa-eraser"></i> Manage/Bulk Delete Results</h3>
+        <div class="responsive-grid">
+            <input type="text" id="editSearchRoll" placeholder="Roll Number" required>
+            <input type="text" id="editSearchName" placeholder="Name (Optional)">
+            <select id="editSearchCourse">
+                <option value="">All Courses</option>
+                <option value="BCA">BCA</option>
+                <option value="B.Sc">B.Sc</option>
+                <option value="B.A">B.A</option>
+                <option value="B.Com">B.Com</option>
+                <option value="PGDCA">PGDCA</option>
+            </select>
+            <button class="action-btn btn-update" onclick="searchByDetails()">
+                <i class="fa-solid fa-magnifying-glass"></i> Search Student
+            </button>
+        </div>
+
+        <div id="studentDetailHeader" style="display:none; margin-bottom: 15px; padding: 15px; background: #eef2ff; border-radius: 12px; border-left: 5px solid var(--primary);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <b>Verified:</b> <span id="resStudentName"></span> | <b>Roll:</b> <span id="resStudentRoll"></span>
+                </div>
+                <button class="action-btn btn-delete" onclick="bulkDeleteMarks()" style="padding: 10px 15px;">
+                    <i class="fa-solid fa-trash-can"></i> Bulk Delete
+                </button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr><th>Subject</th><th>Marks</th><th>Total</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="editMarksTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 15px;">
+        <h3><i class="fa-solid fa-users"></i> Student Management</h3>
+        <button class="action-btn" onclick="exportStudentData()" style="background: #27ae60; padding: 10px 20px; font-weight: bold;">
+            <i class="fa-solid fa-file-excel"></i> Export Student List
+        </button>
+    </div>
+
+    <div class="responsive-grid" style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid #eee;">
+        <input type="text" id="studentSearchInput" placeholder="Search by Name or Roll Number..." onkeyup="filterStudentTable()">
+        <select id="studentCourseFilter" onchange="filterStudentTable()">
+            <option value="">All Courses</option>
+            <option value="BCA">BCA</option>
+            <option value="B.Sc">B.Sc</option>
+            <option value="B.A">B.A</option>
+            <option value="B.Com">B.Com</option>
+            <option value="PGDCA">PGDCA</option>
+        </select>
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Student Name</th>
+                    <th>Email</th>
+                    <th>Roll No</th>
+                    <th>Course</th>
+                    <th>Attendance</th>
+                    <th>Grade</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="userTableBody">
+                </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+<script>
+    const API_BASE = "http://127.0.0.1:5000";
+    window.onload = function() {
+        fetchUsers(); fetchKnowledge(); fetchTimetable();
+    };
+
+    // --- STUDENT MANAGEMENT ---
+    async function fetchUsers() {
+        try {
+            const res = await fetch(`${API_BASE}/admin/get_users`);
+            const users = await res.json();
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td><b>${user.name}</b></td>
+                    <td>${user.email}</td>
+                    <td>${user.roll || 'N/A'}</td>
+                    <td>${user.course || 'N/A'}</td>
+                    <td>${user.attendance || '0'}%</td>
+                    <td><b>${user.internal_grade || 'N/A'}</b></td>
+                    <td>
+                        <button class="action-btn btn-update" onclick="updatePrompt('${user.email}')">Update</button>
+                        <button class="action-btn btn-delete" onclick="deleteUser('${user.email}')"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>`).join('');
+        } catch (err) { console.error(err); }
+    }
+
+    async function updatePrompt(email) {
+        const { value: formValues } = await Swal.fire({
+            title: 'Update Records',
+            html: `<input id="swal-att" class="swal2-input" placeholder="Attendance %"><input id="swal-grd" class="swal2-input" placeholder="Grade">`,
+            showCancelButton: true,
+            preConfirm: () => ({ attendance: document.getElementById('swal-att').value, grade: document.getElementById('swal-grd').value })
+        });
+        if (formValues) {
+            await fetch(`${API_BASE}/admin/update_attendance`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, ...formValues })
+            });
+            fetchUsers();
+        }
+    }
+
+    async function deleteUser(email) {
+        if((await Swal.fire({ title: 'Delete account?', icon: 'warning', showCancelButton: true })).isConfirmed) {
+            await fetch(`${API_BASE}/admin/delete_user`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+            fetchUsers();
+        }
+    }
+
+    // --- KNOWLEDGE BASE ---
+    async function uploadFile() {
+        const fileInput = document.getElementById('adminFile');
+        if (!fileInput.files[0]) return Swal.fire('Error', 'Select a file', 'error');
+        const formData = new FormData(); formData.append('file', fileInput.files[0]);
+        Swal.fire({ title: 'Uploading...', didOpen: () => Swal.showLoading() });
+        const res = await fetch(`${API_BASE}/admin/upload_knowledge`, { method: 'POST', body: formData });
+        if((await res.json()).success) { 
+            Swal.fire('Success', 'AI Knowledge Updated', 'success'); 
+            fetchKnowledge(); fileInput.value = ""; 
+        }
+    }
+// functioon for finding the uploaded knowledge by admin
+
+async function fetchKnowledge() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/get_knowledge`);
+        const data = await res.json();
+        
+       
+        const tbody = document.getElementById('knowledgeTableBody'); 
+        
+        
+        const aiDocs = data.filter(doc => {
+            const cat = doc.category.toLowerCase();
+            return !cat.includes('.xls') && !cat.includes('.xlsx') && !cat.includes('.csv');
+        });
+
+        if(aiDocs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px;">No AI Knowledge documents found.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = aiDocs.map(doc => `
+            <tr>
+                <td><i class="fa-solid fa-file-pdf" style="color: #e74c3c;"></i> <b>${doc.category.replace('Document: ', '')}</b></td>
+                <td>${doc.preview || 'No preview available'}...</td>
+                <td>
+                    <button class="action-btn btn-delete" onclick="deleteKnowledge(${doc.id})">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) { 
+        console.error("Fetch Error:", err);
+        document.getElementById('knowledgeTableBody').innerHTML = '<tr><td colspan="3" style="text-align:center; color:red;">Error loading documents.</td></tr>';
+    }
+}
+
+    async function deleteKnowledge(id) {
+        if((await Swal.fire({ title: 'Remove file?', icon: 'warning', showCancelButton: true })).isConfirmed) {
+            await fetch(`${API_BASE}/admin/delete_knowledge`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+            fetchKnowledge();
+        }
+    }
+
+    // --- TIMETABLE ---
+    async function fetchTimetable() {
+        try {
+            const res = await fetch(`${API_BASE}/get_timetable`);
+            const tt = await res.json();
+            document.getElementById('timetableTableBody').innerHTML = tt.map(item => `
+                <tr><td>${item.course}</td><td>${item.year}</td><td>${item.time}</td><td><b>${item.subject}</b></td><td>${item.room}</td>
+                <td><button class="action-btn btn-delete" onclick="deleteTimetable(${item.id})"><i class="fa-solid fa-trash"></i></button></td></tr>`).join('');
+        } catch (err) { console.error(err); }
+    }
+
+    async function addTimetable() {
+        const data = {
+            course: document.getElementById('ttCourse').value,
+            year: document.getElementById('ttYear').value,
+            time: document.getElementById('ttTime').value,
+            subject: document.getElementById('ttSubject').value,
+            room: document.getElementById('ttRoom').value
+        };
+        const res = await fetch(`${API_BASE}/admin/add_timetable`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        if((await res.json()).success) { fetchTimetable(); document.querySelectorAll('.notice-form input').forEach(i => i.value = ""); }
+    }
+
+    async function deleteTimetable(id) {
+        await fetch(`${API_BASE}/admin/delete_timetable`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+        fetchTimetable();
+    }
+
+    // --- MARKS UPLOAD ---
+    function addSubjectRow() {
+        const row = document.createElement('div');
+        row.className = 'notice-form';
+        row.style = "grid-template-columns: 2fr 1fr 1fr 50px; margin-bottom: 10px;";
+        row.innerHTML = `<input type="text" class="sub-name" placeholder="Subject"><input type="number" class="sub-marks" placeholder="Marks"><input type="number" class="sub-total" value="100"><button class="action-btn btn-delete" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>`;
+        document.getElementById('subjectRows').appendChild(row);
+    }
+
+    async function saveAllResults() {
+        const email = document.getElementById('resEmail').value.trim();
+        const roll = document.getElementById('resRoll').value.trim();
+        const course = document.getElementById('resCourse').value.trim();
+        const subjects = [];
+        document.querySelectorAll('#subjectRows .notice-form').forEach(row => {
+            const name = row.querySelector('.sub-name').value;
+            const marks = row.querySelector('.sub-marks').value;
+            const total = row.querySelector('.sub-total').value;
+            if(name && marks) subjects.push({ subject: name, marks, total });
+        });
+        if(!email || !roll || !course || subjects.length === 0) return Swal.fire('Error', 'Fill all fields', 'warning');
+        
+        const res = await fetch(`${API_BASE}/admin/add_bulk_marks`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, roll, course, results: subjects }) });
+        if((await res.json()).success) { Swal.fire('Saved!', 'Marks uploaded', 'success'); }
+    }
+
+    // --- MANAGE RESULTS ---
+    async function searchByDetails() {
+        const roll = document.getElementById('editSearchRoll').value;
+        const name = document.getElementById('editSearchName').value;
+        const course = document.getElementById('editSearchCourse').value;
+        const res = await fetch(`${API_BASE}/admin/get_result_by_roll`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ roll, name, course }) });
+        const data = await res.json();
+        const tbody = document.getElementById('editMarksTableBody');
+        if(data.success) {
+            currentEditingEmail = data.email;
+            document.getElementById('resStudentName').innerText = data.name;
+            document.getElementById('resStudentRoll').innerText = roll;
+            document.getElementById('studentDetailHeader').style.display = "block";
+            tbody.innerHTML = data.results.map(row => `
+                <tr>
+                    <td>${row.subject}</td>
+                    <td><input type="number" id="marks-${row.id}" value="${row.marks}" style="width:70px"></td>
+                    <td><input type="number" id="total-${row.id}" value="${row.total_marks}" style="width:70px"></td>
+                    <td>
+                        <button class="action-btn btn-update" onclick="saveEditedMark(${row.id})">Save</button>
+                        <button class="action-btn btn-delete" onclick="deleteMarkEntry(${row.id})">Delete</button>
+                    </td>
+                </tr>`).join('');
+        } else { Swal.fire('Not found', data.message, 'error'); }
+    }
+
+    async function saveEditedMark(id) {
+        const marks = document.getElementById(`marks-${id}`).value;
+        const total = document.getElementById(`total-${id}`).value;
+        await fetch(`${API_BASE}/admin/update_result`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, marks, total }) });
+        Swal.fire('Updated', '', 'success');
+    }
+
+    async function deleteMarkEntry(id) {
+        if((await Swal.fire({ title: 'Delete entry?', showCancelButton: true })).isConfirmed) {
+            await fetch(`${API_BASE}/admin/delete_result_entry`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+            searchByDetails();
+        }
+    }
+
+    async function bulkDeleteMarks() {
+        if((await Swal.fire({ title: 'Delete ALL marks?', icon: 'warning', showCancelButton: true })).isConfirmed) {
+            await fetch(`${API_BASE}/admin/delete_all_marks`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email: currentEditingEmail }) });
+            searchByDetails();
+        }
+    }
+    
+    // --- 1. Filter Function (Name, Roll, aur Course ke liye) ---
+function filterStudentTable() {
+    const searchTerm = document.getElementById('studentSearchInput').value.toLowerCase();
+    const courseTerm = document.getElementById('studentCourseFilter').value.toLowerCase();
+    const table = document.getElementById('userTableBody');
+    const rows = table.getElementsByTagName('tr');
+
+    for (let i = 0; i < rows.length; i++) {
+        const name = rows[i].cells[0].innerText.toLowerCase();
+        const roll = rows[i].cells[2].innerText.toLowerCase();
+        const course = rows[i].cells[3].innerText.toLowerCase();
+
+        const matchesSearch = name.includes(searchTerm) || roll.includes(searchTerm);
+        const matchesCourse = courseTerm === "" || course === courseTerm;
+
+        if (matchesSearch && matchesCourse) {
+            rows[i].style.display = "";
+        } else {
+            rows[i].style.display = "none";
+        }
+    }
+}
+// --- 2. Export Function  ---
+async function exportStudentData() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/get_users`);
+        const users = await res.json();
+
+        if (!users || users.length === 0) {
+            return Swal.fire('Info', 'No records found to export', 'info');
+        }
+
+        // CSV Header (Name, Email, Roll, Course, Phone, DOB, Attendance, Grade)
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+        csvContent += "Student Name,Email ID,Roll Number,Course,Phone Number,Date of Birth,Attendance (%),Grade\r\n";
+
+        users.forEach(user => {
+            const row = [
+                `"${user.name}"`,
+                `"${user.email}"`,
+                `"${user.roll || 'N/A'}"`,
+                `"${user.course || 'N/A'}"`,
+                `"${user.phone || 'N/A'}"`,
+                `"${user.dob || 'N/A'}"`, 
+                `"${user.attendance || '0'}%"`,
+                `"${user.internal_grade || 'N/A'}"`
+            ].join(",");
+            csvContent += row + "\r\n";
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `COE_Student_Database.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        Swal.fire('Success', 'Full database exported to Excel!', 'success');
+    } catch (err) {
+        Swal.fire('Error', 'Failed to fetch data for export', 'error');
+    }
+}
+
+    function adminLogout() { sessionStorage.clear(); window.location.href = "login.html"; }
+
+// 1. Fetch and Display Import History (Excel/CSV Files Only)
+async function fetchImportHistory() {
+    try {
+        const res = await fetch(`${API_BASE}/admin/get_knowledge`); 
+        const docs = await res.json();
+        const tbody = document.getElementById('importHistoryBody');
+        
+        
+        const excelDocs = docs.filter(doc => 
+            doc.category.toLowerCase().includes('.xlsx') || 
+            doc.category.toLowerCase().includes('.xls') || 
+            doc.category.toLowerCase().includes('.csv')
+        );
+
+        if(excelDocs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center">No Excel imports found.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = excelDocs.map(doc => `
+            <tr>
+                <td><b>${doc.category.replace('Document: ', '')}</b></td>
+                <td>Processed</td>
+                <td>Recent</td>
+                <td>
+                    <button class="action-btn btn-delete" onclick="deleteKnowledge(${doc.id})">
+                        <i class="fa-solid fa-trash"></i> Remove Log
+                    </button>
+                </td>
+            </tr>`).join('');
+    } catch (err) { console.log(err); }
+}
+
+
+async function importBulkMarks() {
+    const fileInput = document.getElementById('bulkMarksFile');
+    if (!fileInput.files[0]) return Swal.fire('Error', 'Please select an Excel/CSV file', 'error');
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    Swal.fire({ 
+        title: 'Processing Result Records...', 
+        html: 'Please wait while we map Roll Numbers to Emails.',
+        didOpen: () => Swal.showLoading(), 
+        allowOutsideClick: false 
+    });
+
+    try {
+        const res = await fetch(`${API_BASE}/admin/import_bulk_marks`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            await Swal.fire('Success!', `Successfully imported marks for ${data.count} students.`, 'success');
+            fileInput.value = ""; 
+            fetchImportHistory(); 
+        } else {
+            Swal.fire('Import Error', data.message, 'error');
+        }
+    } catch (err) {
+        Swal.fire('Error', 'Server communication failed. Please check file format.', 'error');
+    }
+}
+// 3. Clear Full Results Table Function (With Confirmation)
+
+async function clearFullResultsTable() {
+    const { value: confirmWord } = await Swal.fire({
+        title: 'Are you absolutely sure?',
+        text: "This will delete ALL student marks from the entire database! Type 'DELETE' to confirm.",
+        input: 'text',
+        inputPlaceholder: 'Type DELETE here...',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ff4757',
+        confirmButtonText: 'Yes, Clear All'
+    });
+
+    if (confirmWord === 'DELETE') {
+        Swal.fire({ title: 'Cleaning up...', didOpen: () => Swal.showLoading() });
+        
+        try {
+            const response = await fetch(`${API_BASE}/admin/clear_all_results_database`, { method: 'POST' });
+            const data = await response.json(); 
+
+            if(data.success) {
+                await Swal.fire('Deleted!', 'All result records have been wiped.', 'success');
+                document.getElementById('editMarksTableBody').innerHTML = "";
+                document.getElementById('studentDetailHeader').style.display = "none";
+            } else {
+                Swal.fire('Error', data.message || 'Action failed', 'error');
+            }
+        } catch (err) {
+            Swal.fire('Error', 'Server down or network error', 'error');
+        }
+    }
+}
+
+window.addEventListener('load', () => {
+    fetchImportHistory();
+});
+
+
+</script>
+</body>
+</html>
