@@ -1,0 +1,8 @@
+DB_HOST=your database host/localhost
+DB_PORT=local host root
+DB_USER=root
+DB_PASSWORD=database password
+DB_NAME=college_db
+GROQ_API_KEY=your api key
+ADMIN_EMAIL=your admin mail
+ADMIN_PASS=your admin password
